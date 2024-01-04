@@ -1,6 +1,6 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 const axios = require('axios');
-const { server_ip, server_port } = require('../../config.json');
+const { server_ip } = require('../../config.json');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -8,7 +8,7 @@ module.exports = {
         .setDescription('Get the current server status and players'),
 
     async execute(interaction) {
-        const SERVER_IP = `${server_ip}:${server_port}`;
+        const SERVER_IP = `${server_ip}`;
 
         axios.get(`https://api.mcsrvstat.us/3/${SERVER_IP}`).then((resp) => {
             const data = resp.data;
