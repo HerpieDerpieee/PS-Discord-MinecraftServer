@@ -1,61 +1,36 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
-const dgram = require('dgram');
+const axios = require('axios');
 const { server_ip, server_port } = require('../../config.json');
 
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('server-status')
-        .setDescription('shows you some information about the minecraft server'),
-    async execute(interaction) {
-        try {
-            const serverInfo = await getServerInfo('your_server_ip', your_server_port);
+        .setDescription('Get the current server status and players'),
 
-            const embed = {
-                color: 0x0099ff,
-                title: 'Minecraft Server Status',
+    async execute(interaction) {
+        const SERVER_IP = `${server_ip}:${server_port}`;
+
+        axios.get(`https://api.mcsrvstat.us/3/${SERVER_IP}`).then((resp) => {
+            const data = resp.data;
+
+            const embedData = {
+                title: SERVER_IP,
+                description: data.online ? 'Server is online' : 'Server is offline',
+                color: data.online ? 0x00FF00 : 0xFF0000,
                 fields: [
-                    { name: 'Description', value: serverInfo.description.text },
-                    { name: 'Players', value: `${serverInfo.players.online}/${serverInfo.players.max}`, inline: true },
-                    { name: 'Version', value: serverInfo.version.name, inline: true },
-                    { name: 'Online Players', value: serverInfo.players.sample.map(player => player.name).join(', ') },
+                    { name: 'Version', value: `${data.version} (Protocol ${data.protocol.version})`, inline: false },
                 ],
+                footer: { text: `${data.players.online}/${data.players.max} players` },
             };
 
-            await interaction.reply({ embeds: [embed], content: '```json\n' + JSON.stringify(serverInfo, null, 2) + '```' });
-        } catch (error) {
-            console.error(error.message || 'Failed to retrieve Minecraft server info.');
-            await interaction.reply('Failed to retrieve Minecraft server info.');
-        }
-    },
-};
-
-
-async function getServerInfo(ip, port) {
-    const client = dgram.createSocket('udp4');
-
-    // Send an empty payload for a status request
-    const handshakePacket = Buffer.from([0xFE, 0xFD, 0x00]);
-    client.send(handshakePacket, port, ip);
-
-    return new Promise((resolve, reject) => {
-        client.on('message', (response) => {
-            if (response.slice(0, 2).equals(Buffer.from([0xFF, 0xFD])) && response.length > 35) {
-                const jsonResponse = response.toString('utf8', 35);
-                try {
-                    const parsedResponse = JSON.parse(jsonResponse);
-                    resolve(parsedResponse);
-                } catch (error) {
-                    reject(new Error('Failed to parse server info.'));
-                }
+            if (data.players && data.players.list && data.players.list.length > 0) {
+                embedData.fields.push({ name: 'Player List', value: data.players.list.map(player => player.name).join('\n'), inline: false });
             } else {
-                reject(new Error('Failed to retrieve server info.'));
+                embedData.fields.push({ name: 'Player List', value: 'No players online :(', inline: false });
             }
 
-            client.close();
+            const embed = new EmbedBuilder(embedData);
+            interaction.reply({ content: 'Server status:', embeds: [embed] });
         });
-
-        client.on('error', (err) => {
-            reject(err);
-        });
-    });
-}
+    },
+};
