@@ -8,17 +8,20 @@ module.exports = {
         .setDescription('shows you some information about the minecraft server'),
     async execute(interaction) {
         try {
-            const serverInfo = await getServerInfo(server_ip, server_port);
+            const serverInfo = await getServerInfo('your_server_ip', your_server_port);
 
-            const embed = new EmbedBuilder()
-                .setColor('#0099ff')
-                .setTitle('Minecraft Server Status')
-                .addField('Description', serverInfo.description.text)
-                .addField('Players', `${serverInfo.players.online}/${serverInfo.players.max}`, true)
-                .addField('Version', serverInfo.version.name, true)
-                .addField('Online Players', serverInfo.players.sample.map(player => player.name).join(', '));
+            const embed = {
+                color: 0x0099ff,
+                title: 'Minecraft Server Status',
+                fields: [
+                    { name: 'Description', value: serverInfo.description.text },
+                    { name: 'Players', value: `${serverInfo.players.online}/${serverInfo.players.max}`, inline: true },
+                    { name: 'Version', value: serverInfo.version.name, inline: true },
+                    { name: 'Online Players', value: serverInfo.players.sample.map(player => player.name).join(', ') },
+                ],
+            };
 
-            await interaction.reply({ embeds: [embed] });
+            await interaction.reply({ embeds: [embed], content: '```json\n' + JSON.stringify(serverInfo, null, 2) + '```' });
         } catch (error) {
             console.error(error.message || 'Failed to retrieve Minecraft server info.');
             await interaction.reply('Failed to retrieve Minecraft server info.');
@@ -30,8 +33,8 @@ module.exports = {
 async function getServerInfo(ip, port) {
     const client = dgram.createSocket('udp4');
 
-    // Send a Handshake packet to the server
-    const handshakePacket = Buffer.from([0xFE, 0xFD, 0x09, 0x74, 0x65, 0x73, 0x74, 0x00, 0x4D, 0x49, 0x4E, 0x45, 0x43, 0x52, 0x41, 0x46, 0x54, 0x00]);
+    // Send an empty payload for a status request
+    const handshakePacket = Buffer.from([0xFE, 0xFD, 0x00]);
     client.send(handshakePacket, port, ip);
 
     return new Promise((resolve, reject) => {
@@ -42,10 +45,10 @@ async function getServerInfo(ip, port) {
                     const parsedResponse = JSON.parse(jsonResponse);
                     resolve(parsedResponse);
                 } catch (error) {
-                    reject(new Error('Failed to parse player list.'));
+                    reject(new Error('Failed to parse server info.'));
                 }
             } else {
-                reject(new Error('Failed to retrieve player list.'));
+                reject(new Error('Failed to retrieve server info.'));
             }
 
             client.close();

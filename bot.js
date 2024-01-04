@@ -33,7 +33,8 @@ client.on(Events.InteractionCreate, async interaction => {
 	  const command = client.commands.get(interaction.commandName);
 	  if (command) {
 		try {
-		  await command.execute(interaction);
+			console.log(`executing ${interaction.commandName}`)
+		  	await command.execute(interaction);
 		} catch (error) {
 		  console.error(error);
   
