@@ -8,32 +8,43 @@ module.exports = {
         .setDescription('Get the current server status and players'),
 
     async execute(interaction) {
-        const SERVER_IP = `${server_ip}`;
-        try {
-            axios.get(`https://api.mcsrvstat.us/3/${SERVER_IP}`).then((resp) => {
-                const data = resp.data;
+        const serverURL = `https://api.mcstatus.io/v2/status/java/${server_ip}`
+        let embedData;
+        axios.get(serverURL)
+            .then((response) => {
+                const data = response.data;
+                console.log(data.players.list)
+                if (data.online === true){
+                    embedData = {
+                        title: server_ip,
+                        description: data.online ? 'Server is online' : 'Server is offline',
+                        color: data.online ? 0x00FF00 : 0xFF0000,
+                        fields: [
+                            { name: 'Version', value: `${data.version.name_clean} (Protocol ${data.version.protocol})`, inline: false },
+                        ],
+                        footer: { text: `${data.players.online}/${data.players.max} players` },
+                    };
 
-                const embedData = {
-                    title: SERVER_IP,
-                    description: data.online ? 'Server is online' : 'Server is offline',
-                    color: data.online ? 0x00FF00 : 0xFF0000,
-                    fields: [
-                        { name: 'Version', value: `${data.version} (Protocol ${data.protocol.version})`, inline: false },
-                    ],
-                    footer: { text: `${data.players.online}/${data.players.max} players` },
-                };
+                    if (data.players && data.players.list && data.players.list.length > 0) {
+                        embedData.fields.push({ name: 'Player List', value: data.players.list.map(player => player.name_clean).join('\n'), inline: false });
+                    } else {
+                        embedData.fields.push({ name: 'Player List', value: 'No players online :(', inline: false });
+                    }
 
-                if (data.players && data.players.list && data.players.list.length > 0) {
-                    embedData.fields.push({ name: 'Player List', value: data.players.list.map(player => player.name).join('\n'), inline: false });
                 } else {
-                    embedData.fields.push({ name: 'Player List', value: 'No players online :(', inline: false });
+                    embedData = {
+                        title: SERVER_IP,
+                        description: data.online ? 'Server is online' : 'Server is offline',
+                        color: data.online ? 0x00FF00 : 0xFF0000,
+                    };
                 }
 
                 const embed = new EmbedBuilder(embedData);
                 interaction.reply({ content: 'Server status:', embeds: [embed] });
+            })
+            .catch((error) => {
+                console.error('Error:', error.message);
             });
-        } catch (e){
-            await interaction.reply("An Error Occurred, and i am too lazy to add a proper embed for it. the server is probably offline or something")
-        }
+
     },
 };
