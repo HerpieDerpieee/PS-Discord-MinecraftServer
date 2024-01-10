@@ -1,5 +1,5 @@
 # PS-Discord-MinecraftServer 
-A Discord bot designed to fetch data from a Minecraft server using the [Minecraft Server Status API](https://api.mcsrvstat.us/). 
+A Discord bot designed to fetch data from a Minecraft server using the [Minecraft Server Status API](https://mcstatus.io). 
 
 
 ## How to use 
